@@ -1,10 +1,27 @@
 # Define the default target now so that it is always the first target
-BUILD_TARGETS = main quantize quantize-stats perplexity embedding vdot train-text-from-scratch convert-llama2c-to-ggml simple save-load-state server embd-input-test gguf llama-bench baby-llama beam_search
+BUILD_TARGETS = main quantize quantize-stats perplexity embedding vdot train-text-from-scratch convert-llama2c-to-ggml simple save-load-state server embd-input-test gguf llama-bench baby-llama beam-search tests/test-c.o
 
 # Binaries only useful for tests
 TEST_TARGETS = tests/test-llama-grammar tests/test-grammar-parser tests/test-double-float tests/test-grad0 tests/test-opt tests/test-quantize-fns tests/test-quantize-perf tests/test-sampling tests/test-tokenizer-0-llama tests/test-tokenizer-0-falcon tests/test-tokenizer-1
 
 default: $(BUILD_TARGETS)
+
+test:
+	@echo "Running tests..."
+	@for test_target in $(TEST_TARGETS); do \
+		if [ "$$test_target" = "tests/test-tokenizer-0-llama" ]; then \
+			./$$test_target $(CURDIR)/models/ggml-vocab-llama.gguf; \
+		elif [ "$$test_target" = "tests/test-tokenizer-0-falcon" ]; then \
+			continue; \
+		elif [ "$$test_target" = "tests/test-tokenizer-1" ]; then \
+			continue; \
+		else \
+			./$$test_target; \
+		fi; \
+	done
+	@echo "All tests have been run."
+
+all: $(BUILD_TARGETS) $(TEST_TARGETS)
 
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
@@ -64,7 +81,7 @@ endif
 
 # warnings
 CFLAGS   += -Wall -Wextra -Wpedantic -Wcast-qual -Wdouble-promotion -Wshadow -Wstrict-prototypes -Wpointer-arith \
-			-Wmissing-prototypes
+			-Wmissing-prototypes -Werror=implicit-int
 CXXFLAGS += -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-multichar
 
 # OS specific
@@ -374,7 +391,7 @@ libllama.so: llama.o ggml.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared -fPIC -o $@ $^ $(LDFLAGS)
 
 clean:
-	rm -vf *.o *.so *.dll benchmark-matmult build-info.h $(BUILD_TARGETS) $(TEST_TARGETS)
+	rm -vf *.o tests/*.o *.so *.dll benchmark-matmult build-info.h $(BUILD_TARGETS) $(TEST_TARGETS)
 
 #
 # Examples
@@ -429,7 +446,7 @@ llama-bench: examples/llama-bench/llama-bench.cpp build-info.h ggml.o llama.o co
 baby-llama: examples/baby-llama/baby-llama.cpp ggml.o llama.o common.o $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
-beam_search: examples/beam_search/beam_search.cpp build-info.h ggml.o llama.o common.o $(OBJS)
+beam-search: examples/beam-search/beam-search.cpp build-info.h ggml.o llama.o common.o $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
 ifneq '' '$(or $(filter clean,$(MAKECMDGOALS)),$(LLAMA_METAL))'
@@ -494,3 +511,6 @@ tests/test-tokenizer-0-llama: tests/test-tokenizer-0-llama.cpp build-info.h ggml
 
 tests/test-tokenizer-1: tests/test-tokenizer-1.cpp build-info.h ggml.o llama.o common.o $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
+
+tests/test-c.o: tests/test-c.c llama.h
+	$(CC) $(CFLAGS) -c $(filter-out %.h,$^) -o $@
