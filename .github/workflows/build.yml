@@ -254,7 +254,7 @@ jobs:
           cmake --build . --config Release
 
   windows-latest-cmake:
-    runs-on: windows-latest
+    runs-on: [self-hosted, windows-latest]
 
     env:
       OPENBLAS_VERSION: 0.3.23
@@ -388,7 +388,7 @@ jobs:
             llama-${{ steps.tag.outputs.name }}-bin-win-${{ matrix.build }}-x64.zip
 
   windows-latest-cmake-cublas:
-    runs-on: windows-latest
+    runs-on: [self-hosted, windows-latest]
 
     strategy:
       matrix:
