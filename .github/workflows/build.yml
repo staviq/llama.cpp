@@ -402,12 +402,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Jimver/cuda-toolkit@v0.2.11
-        id: cuda-toolkit
-        with:
-          cuda: ${{ matrix.cuda }}
-          method: network
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
+#      - uses: Jimver/cuda-toolkit@v0.2.11
+#        id: cuda-toolkit
+#        with:
+#          cuda: ${{ matrix.cuda }}
+#          method: network
+#          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
 
       - name: Build
         id: cmake_build
