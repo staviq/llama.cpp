@@ -1,8 +1,8 @@
 # Define the default target now so that it is always the first target
 BUILD_TARGETS = \
 	main quantize quantize-stats perplexity embedding vdot q8dot train-text-from-scratch convert-llama2c-to-ggml \
-	simple batched batched-bench save-load-state server rest embd-input-test gguf llama-bench llava baby-llama   \
-	beam-search speculative infill benchmark-matmult parallel finetune export-lora tests/test-c.o
+	simple batched batched-bench save-load-state server rest gguf llama-bench llava baby-llama beam-search       \
+	speculative infill benchmark-matmult parallel finetune export-lora tests/test-c.o
 
 # Binaries only useful for tests
 TEST_TARGETS = \
