@@ -1,8 +1,8 @@
 # Define the default target now so that it is always the first target
 BUILD_TARGETS = \
 	main quantize quantize-stats perplexity embedding vdot q8dot train-text-from-scratch convert-llama2c-to-ggml \
-	simple batched batched-bench save-load-state server gguf llama-bench llava baby-llama beam-search  \
-	speculative infill benchmark-matmult parallel finetune export-lora tests/test-c.o
+	simple batched batched-bench save-load-state server rest embd-input-test gguf llama-bench llava baby-llama   \
+	beam-search speculative infill benchmark-matmult parallel finetune export-lora tests/test-c.o
 
 # Binaries only useful for tests
 TEST_TARGETS = \
@@ -565,6 +565,8 @@ train.o: common/train.cpp common/train.h
 libllama.so: llama.o ggml.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared -fPIC -o $@ $^ $(LDFLAGS)
 
+REST_DEPS = examples/rest/inference.hpp examples/rest/utils.hpp examples/rest/cmdlargs.hpp examples/rest/libs.hpp
+
 clean:
 	rm -vrf *.o tests/*.o *.so *.dll benchmark-matmult build-info.h *.dot $(COV_TARGETS) $(BUILD_TARGETS) $(TEST_TARGETS)
 
@@ -607,6 +609,9 @@ save-load-state: examples/save-load-state/save-load-state.cpp build-info.h ggml.
 
 server: examples/server/server.cpp examples/server/httplib.h examples/server/json.hpp examples/server/index.html.hpp examples/server/index.js.hpp examples/server/completion.js.hpp examples/llava/clip.cpp examples/llava/clip.h common/stb_image.h build-info.h ggml.o llama.o $(COMMON_DEPS) grammar-parser.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -Iexamples/server $(filter-out %.h,$(filter-out %.hpp,$^)) -o $@ $(LDFLAGS) $(LWINSOCK2) -Wno-cast-qual
+
+rest: examples/rest/rest.cpp                                  build-info.h ggml.o llama.o $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
 gguf: examples/gguf/gguf.cpp ggml.o llama.o $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)

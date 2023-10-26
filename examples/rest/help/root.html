@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>HELP</title>
+  </head>
+  <body style="white-space: pre;">
+    Rest API has detected access from a browser and operates in "help" mode.
+    You can use this mode to explore this API.
+
+    If you wish to use Rest API, <code style="display: inline-block;">X-LlamaCpp-Client</code> header must be set, optionally containing client identificator, for example: "restclient/myscript-0.0.1"
+
+    To set User Agent header with <code>curl</code>:
+    <code>
+        curl http://server:port/ -H "X-LlamaCpp-Client: restclient"
+    </code>
+
+    To set User Agent header with <code>XMLHttpRequest</code>:
+    <code>
+        request=new XMLHttpRequest();
+        request.setRequestHeader("X-LlamaCpp-Client", "restclient");
+    </code>
+
+    
+  </body>
+</html>
