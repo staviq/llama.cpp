@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LLAMA_CPP_REST_CMDLARGS_HPP
+#define LLAMA_CPP_REST_CMDLARGS_HPP
 
 #include "libs.hpp"
 
@@ -9,6 +10,9 @@
 #include <set>
 #include <unordered_set>
 #include <map>
+
+namespace LlamaREST
+{
 
 using json = nlohmann::json;
 
@@ -227,10 +231,15 @@ class CmdlArgs{
                     }
                 }
             }
-            return j;
+            _parsed = j;
+            return _parsed;
         }
-        
-        std::string self(){
+
+        json params() const {
+            return _parsed;
+        }
+
+        std::string self() const {
             return _self;
         }
     private:
@@ -238,4 +247,9 @@ class CmdlArgs{
         std::vector<std::string> _args;
         std::unordered_set<ArgDef,ArgDef> _argdefs;
         std::map<std::string, const ArgDef &> _aliases;
+        json _parsed;
 };
+
+} // namespace LlamaREST
+
+#endif

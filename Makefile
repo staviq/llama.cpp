@@ -565,7 +565,17 @@ train.o: common/train.cpp common/train.h
 libllama.so: llama.o ggml.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared -fPIC -o $@ $^ $(LDFLAGS)
 
-REST_DEPS = examples/rest/inference.hpp examples/rest/utils.hpp examples/rest/cmdlargs.hpp examples/rest/libs.hpp
+REST_DEPS = examples/rest/inference.hpp examples/rest/utils.hpp examples/rest/cmdlargs.hpp examples/rest/libs.hpp \
+			examples/rest/system.hpp
+
+rest_inference.o: examples/rest/inference.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+rest_system.o: examples/rest/system.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+rest_rest.o: examples/rest/rest.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+REST_OBJS = rest_rest.o rest_inference.o rest_system.o
 
 clean:
 	rm -vrf *.o tests/*.o *.so *.dll benchmark-matmult build-info.h *.dot $(COV_TARGETS) $(BUILD_TARGETS) $(TEST_TARGETS)
@@ -610,7 +620,7 @@ save-load-state: examples/save-load-state/save-load-state.cpp build-info.h ggml.
 server: examples/server/server.cpp examples/server/httplib.h examples/server/json.hpp examples/server/index.html.hpp examples/server/index.js.hpp examples/server/completion.js.hpp examples/llava/clip.cpp examples/llava/clip.h common/stb_image.h build-info.h ggml.o llama.o $(COMMON_DEPS) grammar-parser.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -Iexamples/server $(filter-out %.h,$(filter-out %.hpp,$^)) -o $@ $(LDFLAGS) $(LWINSOCK2) -Wno-cast-qual
 
-rest: examples/rest/rest.cpp                                  build-info.h ggml.o llama.o $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+rest: $(REST_OBJS)                                            build-info.h ggml.o llama.o $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
 gguf: examples/gguf/gguf.cpp ggml.o llama.o $(OBJS)

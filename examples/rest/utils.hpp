@@ -1,17 +1,86 @@
-#pragma once
+#ifndef LLAMA_CPP_REST_UTILS_HPP
+#define LLAMA_CPP_REST_UTILS_HPP
+
+#include "libs.hpp"
 
 #include <random>
 #include <string>
 #include <sstream>
 #include <iomanip>
 
-#define LLREST_PRINT_HEADERS(req)                                               \
-    do{                                                                         \
+namespace LlamaREST
+{
+
+#define LLREST_PRINT_REQUEST(req)                                               \
+do{                                                                             \
+    fprintf( stderr, "R: '%s':'%s'\n", req.method.c_str(), req.path.c_str() );     \
     for(const auto & h: req.headers)                                            \
     {                                                                           \
         fprintf( stderr, "H: '%s':'%s'\n", h.first.c_str(), h.second.c_str() ); \
     }                                                                           \
-    }while(false)
+}while(false)
+
+struct SrvHandlers{
+    SrvHandlers(){}
+    std::map<std::string,httplib::Server::Handler> get;
+    std::map<std::string,httplib::Server::Handler> post;
+    std::map<std::string,httplib::Server::Handler> put;
+    std::map<std::string,httplib::Server::Handler> patch;
+    std::map<std::string,httplib::Server::Handler> del;
+    std::map<std::string,httplib::Server::Handler> options;
+};
+
+static void srv_register_handlers(httplib::Server & srv, const SrvHandlers & handlers )
+{
+    for (const auto & h: handlers.get) {srv.Get(h.first,h.second);}
+    for (const auto & h: handlers.post) {srv.Post(h.first,h.second);}
+    for (const auto & h: handlers.put) {srv.Put(h.first,h.second);}
+    for (const auto & h: handlers.patch) {srv.Patch(h.first,h.second);}
+    for (const auto & h: handlers.del) {srv.Delete(h.first,h.second);}
+    for (const auto & h: handlers.options) {srv.Options(h.first,h.second);}
+}
+class JsonFile{
+    public:
+        JsonFile( std::string path, json content = json() )
+        :
+            _path(path),
+            _content(content)
+        {
+            load();
+        }
+    public:
+        json & content()
+        {
+            return _content;
+        }
+
+        json & load() { return load(_path);}
+        json & load( std::string path )
+        {
+            std::ifstream f(path, std::ios::in);
+            if(!f.is_open())
+            {
+                return _content;
+            }
+            std::stringstream buffer;
+            buffer << f.rdbuf();
+            _content = json::parse(buffer);
+            return _content;
+        }
+
+        void save(){return save(_path);}
+        void save( std::string path )
+        {
+            std::ofstream f(_path, std::ios::out | std::ios::trunc);
+            f << _content.dump(4, ' ');
+            _path = path;
+        }
+
+    private:
+        std::string & _path;
+        json _content;
+
+};
 
 class LLRestUuid
 {
@@ -63,7 +132,7 @@ class LLRestUuid
         
         operator std::string()
         {
-            return std::move(make());
+            return make();
         }
 
 
@@ -76,3 +145,7 @@ class LLRestUuid
     private:
         std::mt19937 rng;
 };
+
+} // namespace LlamaREST
+
+#endif

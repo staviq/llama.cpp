@@ -1,8 +1,7 @@
-#include "libs.hpp"
-
 #include "build-info.h"
 #include "grammar-parser.h"
 
+#include "libs.hpp"
 #include "utils.hpp"
 #include "system.hpp"
 #include "cmdlargs.hpp"
@@ -76,11 +75,14 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
+    if (!params.contains("mdir")){
+        params["mdir"] = "./models";
+    }
+
     fprintf(stderr, "CMDL: %s\n", params.dump(1, '\t').c_str());
 
     LLRestUuid uuid_generator;
-    json inference_config;
-    Inference llama(inference_config);
+    Inference llama;
 
 #ifdef REST_WITH_ENCRYPTION
     httplib::SSLServer srv;
@@ -88,10 +90,14 @@ int main(int argc, char ** argv)
     httplib::Server srv;
 #endif
 
-    System system( cmdlargs, srv, uuid_generator );
+    srv.set_pre_routing_handler([](const Request & req, Response & res) {
+        LLREST_PRINT_REQUEST(req);
+        return Server::HandlerResponse::Unhandled;
+    });
+
+    System system( cmdlargs, srv, uuid_generator, llama );
 
     auto endpoint_root = [](const Request &req, Response &res) {
-        LLREST_PRINT_HEADERS(req);
         /*
         if( !req.has_header("X-LlamaCpp-Client") || req.get_header_value("X-LlamaCpp-Client").empty())
         {
@@ -109,22 +115,15 @@ int main(int argc, char ** argv)
     };
     srv.Get ("/", endpoint_root);
 
-    auto endpoint_session = [&](const Request &req, Response &res) {
+    srv.Get("/session", [&](const Request &req, Response &res) {
         json response;
         response["session"] = uuid_generator.make();
         res.set_content( response.dump(), "application/json");
-    };
-    srv.Get("/session", endpoint_session);
+    });
 
-    auto endpoint_auth = [](const Request &req, Response &res) {
+    srv.Get("/auth", [](const Request &req, Response &res) {
         res.set_content("Auth", "text/plain");
-    };
-    srv.Get("/auth", endpoint_auth);
-
-    auto endpoint_system = [](const Request &req, Response &res) {
-        res.set_content("System", "text/plain");
-    };
-    srv.Get("/system", endpoint_auth);
+    });
 
     run = true;
     std::thread srv_t{[&] {

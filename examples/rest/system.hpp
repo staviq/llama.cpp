@@ -1,8 +1,14 @@
-#pragma once
+#ifndef LLAMA_CPP_REST_SYSTEM_HPP
+#define LLAMA_CPP_REST_SYSTEM_HPP
 
 #include "utils.hpp"
 #include "cmdlargs.hpp"
+#include "inference.hpp"
 #include "libs.hpp"
+
+#ifndef _WIN32
+#include <dirent.h>
+#endif
 
 namespace LlamaREST
 {
@@ -10,28 +16,23 @@ namespace LlamaREST
 class System
 {
     public:
-        System( CmdlArgs & cmdlargs, httplib::Server & srv, LLRestUuid & uuid_generator )
-        :
-            _cmdlargs(cmdlargs),
-            _srv(srv),
-            _uuid_generator(uuid_generator)
-        {
-            _srv.Get("/system/models", [&](const Request &req, Response &res) {
-                json response;
-                response["session"] = _uuid_generator.make();
-                res.set_content( response.dump(), "application/json");
-            });
-        }
+        System( CmdlArgs & cmdlargs, httplib::Server & srv, LLRestUuid & uuid_generator, Inference & infr );
 
     private:
-        std::vector<std::string> _ls( const std::string & path )
-        {
-            std::vector<std::string> results;
-        }
+        std::vector<std::string> _ls_m( const std::string & path );
+        std::vector<std::string> _ls( const std::string & path );
+
+        const SrvHandlers & handlers() const {return _handlers;}
+
     private:
-        CmdlArgs & _cmdlargs;
+        CmdlArgs & _args;
         httplib::Server & _srv;
-        LLRestUuid & _uuid_generator;
+        LLRestUuid & _uuidg;
+        Inference & _infr;
+
+        SrvHandlers _handlers;
 };
 
 } // namespace LlamaREST
+
+#endif
