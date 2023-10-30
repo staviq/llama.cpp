@@ -11,13 +11,15 @@
 namespace LlamaREST
 {
 
-#define LLREST_PRINT_REQUEST(req)                                               \
-do{                                                                             \
-    fprintf( stderr, "R: '%s':'%s'\n", req.method.c_str(), req.path.c_str() );     \
-    for(const auto & h: req.headers)                                            \
-    {                                                                           \
-        fprintf( stderr, "H: '%s':'%s'\n", h.first.c_str(), h.second.c_str() ); \
-    }                                                                           \
+#define LLREST_PRINT_REQUEST(req)                                                   \
+do{                                                                                 \
+    std::set<std::string> dbg_headers = { "Content-Type", "Content-Length"};        \
+    fprintf( stderr, "R: '%s':'%s'\n", req.method.c_str(), req.path.c_str() );      \
+    for(const auto & h: req.headers)                                                \
+    {                                                                               \
+        if (dbg_headers.find(h.first)!=dbg_headers.end())                           \
+            fprintf( stderr, "H: '%s':'%s'\n", h.first.c_str(), h.second.c_str() ); \
+    }                                                                               \
 }while(false)
 
 struct SrvHandlers{
@@ -77,7 +79,7 @@ class JsonFile{
         }
 
     private:
-        std::string & _path;
+        std::string _path;
         json _content;
 
 };

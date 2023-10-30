@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>HELP</title>
+  </head>
+  <body>
+    <div style="white-space: pre;">
+      Rest API has detected access from a browser and operates in "help" mode.
+      You can use this mode to explore this API.
+    </div>
+    <div style="display: table; width: 100vw; height: 50vh;">
+      <div style="display: table-row; width: auto; height: auto;">
+        <div style="display: table-column; float: left; width: fit-content; height: fit-content; white-space: pre;">
+          <input type="text" id="mtgt" name="mtgt" value="/tokenize" /><input type="text" id="mtype" name="mtype" value="text/plain" /><input type="text" id="status" /><input type="radio" id="mget" name="method" value="get" checked /><label for="mget">GET</label><input type="radio" id="mpost" name="method" value="post" /><label for="mpost">POST</label><button id="send">Send</button>
+          <textarea id="data" style="width: 50vw; height: 20vh; box-sizing: border-box;"></textarea>
+          <textarea id="result" style="width: 50vw; height: 20vh; box-sizing: border-box;"></textarea>
+          <div id="json-display" style="white-space: pre; display: inline-block; width: 50vw; height: fit-content; padding: 0.5em; padding-left: 2em; box-sizing: border-box;"></div>
+        </div>
+        <div style="display: table-column; float: left; width: fit-content; height: fit-content; white-space: pre;">
+          <select name="history" id="history" size="10" style="width: 100%;">
+            <option value="default">asdasd</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <script>
+      var hhistory = [
+        {
+          value: "tokenize test",
+          target: "/tokenize",
+          input: "Kaszanka",
+          mime: "text/plain",
+          method: "POST"
+        }
+      ]
+
+      const local_storage_storageKey = "rest_playground";
+
+      function local_storage_setDataFromObject(tag, content) {
+        localStorage.setItem(local_storage_storageKey + '/' + tag, JSON.stringify(content));
+      }
+
+      function local_storage_setDataFromRawText(tag, content) {
+        localStorage.setItem(local_storage_storageKey + '/' + tag, content);
+      }
+
+      function local_storage_getDataAsObject(tag) {
+        const item = localStorage.getItem(local_storage_storageKey + '/' + tag);
+        if (!item) {
+          return null;
+        } else {
+          return JSON.parse(item);
+        }
+      }
+
+      function local_storage_getDataAsRawText(tag) {
+        const item = localStorage.getItem(local_storage_storageKey + '/' + tag);
+        if (!item) {
+          return null;
+        } else {
+          return item;
+        }
+      }
+
+      if (local_storage_getDataAsObject("history")) {
+        hhistory = local_storage_getDataAsObject("history")
+      } else {
+        local_storage_setDataFromObject("history", hhistory)
+        hhistory = local_storage_getDataAsObject("history")
+      }
+
+      var onsend = function() {
+        var ele = document.getElementsByName('method');
+        var mtd = document.querySelector('input[name="method"]:checked').value.toUpperCase()
+
+        function reqListener() {
+          var s = document.querySelector("#status");
+          s.value += ' ' + this.status + " " + this.statusText;
+          //var unescaped = decodeURIComponent(JSON.parse(this.responseText).result);
+          document.querySelector("#result").value = this.responseText;
+          //console.log("this", this)
+          if(this.status == 200){
+            histadd();
+            s.style.backgroundColor = "rgb(240,255,240)";
+          }else{
+            s.style.backgroundColor = "rgb(255,240,240)";
+          }
+          const evt = new Event("input");
+          document.querySelector("#result").dispatchEvent(evt);
+        }
+
+        function reqProgress(e) {
+          console.log(e)
+          var s = document.querySelector("#status");
+          s.value = (e.loaded / e.total) * 100 + "%"
+        }
+
+        const req=new XMLHttpRequest();
+        req.addEventListener("load", reqListener);
+        req.addEventListener("progress", reqProgress);
+        req.open(mtd, document.querySelector("#mtgt").value);
+        if ( document.querySelector("#mtype").value.length > 0 ) {
+          req.setRequestHeader("Content-Type", document.querySelector("#mtype").value);
+        }
+        req.send(document.querySelector("#data").value);
+      }
+      document.getElementById("send").addEventListener("click", onsend);
+
+      var hist = document.querySelector("#history")
+      hist.innerHTML = "";
+
+      var histupdate = function(){
+        hist.innerHTML = ""
+        for(const elm of hhistory){
+          var opt = document.createElement('option');
+          opt.value = JSON.stringify(elm);
+          opt.innerHTML = elm.value;
+          hist.appendChild(opt);
+          //console.log("elm", elm)
+        }
+      }
+
+      histupdate()
+
+      var histrestore = function( h ){
+        //console.log("hr", h)
+        document.querySelector("#mtgt").value = h.target
+        document.querySelector("#mtype").value = h.mime
+        document.querySelector('input[name="method"]:checked').checked = false;
+        document.querySelector('#m'+h.method.toLowerCase()).checked = true;
+        document.querySelector("#data").value = h.input
+
+        histupdate()
+      }
+
+      histrestore(hhistory[0])
+
+      var restoreselected = function(){
+        var h = JSON.parse(this.value);
+        histrestore(h)
+      }
+
+      hist.addEventListener("change", restoreselected)
+
+      var histadd = function(){
+        //console.log("Asd")
+        var inp = document.querySelector("#data").value;
+        var sub = inp.substring(0,64)
+        var sfx = inp.length == sub.length ? "" : "(...)"
+        var tgt = document.querySelector("#mtgt").value
+        var mtp = document.querySelector("#mtype").value;
+        var mtd = document.querySelector('input[name="method"]:checked').value.toUpperCase()
+        hhistory.unshift({
+          value: tgt + " " + mtd.padStart(6, ' ') + ' "' + (sub + sfx) + '"',
+          target: tgt,
+          mime: mtp,
+          input: inp,
+          method: mtd
+        })
+        local_storage_setDataFromObject("history", hhistory)
+        hhistory = local_storage_getDataAsObject("history")
+        histupdate()
+        //console.log("hh", hhistory)
+      }
+
+      //document.getElementById("send").addEventListener("click", histadd);
+    </script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" 
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" 
+      crossorigin="anonymous"></script>
+    <script src="jquery.json-editor.min.js"></script>
+    <script>
+      var getJson = function(){
+        return JSON.parse(document.querySelector("#result").value)
+      }
+      var editor = new JsonEditor('#json-display', getJson);
+      document.querySelector("#result").addEventListener("input", function (){
+        console.log("???")
+        editor.load( getJson() );
+      })
+    </script>
+  </body>
+</html>

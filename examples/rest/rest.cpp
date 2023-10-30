@@ -6,6 +6,9 @@
 #include "system.hpp"
 #include "cmdlargs.hpp"
 #include "inference.hpp"
+#include "chat.hpp"
+
+#include "public.hpp"
 
 #include <unistd.h>
 #include <cstdio>
@@ -65,24 +68,46 @@ int main(int argc, char ** argv)
         CmdlArgs::ReqDef::Optional,
         {CmdlArgs::ReqDef::Required, CmdlArgs::TypDef::UInteger, "PORT"}
     });
+    cmdlargs.arg({
+        "logdisable",
+        {"--log-disable"},
+        "Log disable",
+        CmdlArgs::ReqDef::Optional,
+        {CmdlArgs::ReqDef::Never, CmdlArgs::TypDef::Any, ""}
+    });
 
     json params;
 
-    try{
+    try {
         params = cmdlargs.parse();
-    } catch ( std::exception & e){
+    } catch ( std::exception & e) {
         fprintf(stderr, "Error: %s\n", e.what());
         exit(1);
     }
 
-    if (!params.contains("mdir")){
+    if (!params.contains("mdir")) {
         params["mdir"] = "./models";
+    }
+    if (!params.contains("srvhost")) {
+        params["srvhost"] = "0.0.0.0";
+    }
+    if (!params.contains("srvport")) {
+        params["srvport"] = 8081;
+    }
+
+    if (params.contains("logdisable") && params["logdisable"].get<bool>()) {
+        log_disable();
     }
 
     fprintf(stderr, "CMDL: %s\n", params.dump(1, '\t').c_str());
 
+#ifndef LOG_DISABLE_LOGS
+    log_set_target(log_filename_generator("rest", "log"));
+    LOG_TEE("Log start\n");
+    log_dump_cmdline(argc, argv);
+#endif // LOG_DISABLE_LOGS
+
     LLRestUuid uuid_generator;
-    Inference llama;
 
 #ifdef REST_WITH_ENCRYPTION
     httplib::SSLServer srv;
@@ -91,45 +116,48 @@ int main(int argc, char ** argv)
 #endif
 
     srv.set_pre_routing_handler([](const Request & req, Response & res) {
-        LLREST_PRINT_REQUEST(req);
+        /*LLREST_PRINT_REQUEST(req);*/
+        static std::set<std::string> dbg_headers = { "Content-Type", "Content-Length", "REMOTE_ADDR", "User-Agent"};
+        fprintf( stderr, "R: %s\n\tM: '%s'\n", req.path.c_str(), req.method.c_str() );
+        for(const auto & h: req.headers)
+        {
+            if (dbg_headers.find(h.first)!=dbg_headers.end()) {
+                fprintf( stderr, "\tH: '%s':'%s'\n", h.first.c_str(), h.second.c_str() );
+            }
+        }
         return Server::HandlerResponse::Unhandled;
     });
 
-    System system( cmdlargs, srv, uuid_generator, llama );
+    Inference inference( cmdlargs, srv, uuid_generator );
+    System       system( cmdlargs, srv, uuid_generator, inference );
+    Chat           chat( cmdlargs, srv, uuid_generator, inference );
 
-    auto endpoint_root = [](const Request &req, Response &res) {
-        /*
-        if( !req.has_header("X-LlamaCpp-Client") || req.get_header_value("X-LlamaCpp-Client").empty())
-        {
-            #include "help/root.html.hpp"
-            res.set_content( std::string((const char *)root_html, root_html_len), "text/html");
-        }
-        else
-        {
-            res.set_content("Hello World! Client\n", "text/plain");
-        }
-        */
-        json response;
-        response["comment"] = "No endpoint specified. Try '/session'.";
-        res.set_content( response.dump(), "application/json");
+    auto endpoint_index = [&](const Request &req, Response &res) {
+        res.set_content( std::string((const char *)index_html, index_html_len), "text/html");
     };
-    srv.Get ("/", endpoint_root);
+    srv.Get("/", endpoint_index);
+    srv.Get("/index.html", endpoint_index);
 
-    srv.Get("/session", [&](const Request &req, Response &res) {
-        json response;
-        response["session"] = uuid_generator.make();
-        res.set_content( response.dump(), "application/json");
-    });
+    auto endpoint_chat = [&](const Request &req, Response &res) {
+        res.set_content( std::string((const char *)chat_html, chat_html_len), "text/html");
+    };
+    srv.Get("/chat", endpoint_chat);
+    srv.Get("/chat.html", endpoint_chat);
 
-    srv.Get("/auth", [](const Request &req, Response &res) {
-        res.set_content("Auth", "text/plain");
-    });
+    std::string basedir = "examples/rest/public";
+    srv.set_base_dir(basedir);
 
     run = true;
+
     std::thread srv_t{[&] {
-        srv.listen("0.0.0.0", 8080);
+        if (!srv.listen(params["srvhost"], params["srvport"])) {
+            LOG_TEE("Server failed to start.\n");
+        }
     }};
-    if( srv_t.joinable() ) srv_t.join();
+
+    if( srv_t.joinable() ) {
+        srv_t.join();
+    }
 
     return 0;
 }

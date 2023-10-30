@@ -3,8 +3,8 @@
 
 #include "utils.hpp"
 #include "cmdlargs.hpp"
-#include "inference.hpp"
 #include "libs.hpp"
+#include "inference.hpp"
 
 #ifndef _WIN32
 #include <dirent.h>
@@ -22,9 +22,11 @@ class System
         std::vector<std::string> _ls_m( const std::string & path );
         std::vector<std::string> _ls( const std::string & path );
 
-        const SrvHandlers & handlers() const {return _handlers;}
+        //const SrvHandlers & handlers() const {return _handlers;}
 
     private:
+        std::mutex _busy;
+
         CmdlArgs & _args;
         httplib::Server & _srv;
         LLRestUuid & _uuidg;

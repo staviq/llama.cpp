@@ -1,8 +1,9 @@
 # Define the default target now so that it is always the first target
 BUILD_TARGETS = \
 	main quantize quantize-stats perplexity embedding vdot q8dot train-text-from-scratch convert-llama2c-to-ggml \
-	simple batched batched-bench save-load-state server rest gguf llama-bench llava baby-llama beam-search       \
+	simple batched batched-bench save-load-state server gguf llama-bench llava baby-llama beam-search  \
 	speculative infill benchmark-matmult parallel finetune export-lora tests/test-c.o
+BUILD_TARGETS += rest
 
 # Binaries only useful for tests
 TEST_TARGETS = \
@@ -568,14 +569,21 @@ libllama.so: llama.o ggml.o $(OBJS)
 REST_DEPS = examples/rest/inference.hpp examples/rest/utils.hpp examples/rest/cmdlargs.hpp examples/rest/libs.hpp \
 			examples/rest/system.hpp
 
+rest_lib_lz4.o: examples/rest/lib/lz4.c $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CC)  $(CFLAGS)   -c $< -o $@
 rest_inference.o: examples/rest/inference.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+rest_chat.o: examples/rest/chat.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 rest_system.o: examples/rest/system.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 rest_rest.o: examples/rest/rest.cpp $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-REST_OBJS = rest_rest.o rest_inference.o rest_system.o
+REST_OBJS = rest_rest.o rest_lib_lz4.o rest_inference.o rest_chat.o rest_system.o
+
+lz4.o: examples/save-load-state/lz4.c examples/save-load-state/lz4.c
+	$(CC)  $(CFLAGS)   -c $< -o $@
 
 clean:
 	rm -vrf *.o tests/*.o *.so *.dll benchmark-matmult build-info.h *.dot $(COV_TARGETS) $(BUILD_TARGETS) $(TEST_TARGETS)
@@ -614,7 +622,7 @@ perplexity: examples/perplexity/perplexity.cpp                build-info.h ggml.
 embedding: examples/embedding/embedding.cpp                   build-info.h ggml.o llama.o $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
-save-load-state: examples/save-load-state/save-load-state.cpp build-info.h ggml.o llama.o $(COMMON_DEPS) $(OBJS)
+save-load-state: examples/save-load-state/save-load-state.cpp build-info.h lz4.o ggml.o llama.o $(COMMON_DEPS) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 
 server: examples/server/server.cpp examples/server/httplib.h examples/server/json.hpp examples/server/index.html.hpp examples/server/index.js.hpp examples/server/completion.js.hpp examples/llava/clip.cpp examples/llava/clip.h common/stb_image.h build-info.h ggml.o llama.o $(COMMON_DEPS) grammar-parser.o $(OBJS)
