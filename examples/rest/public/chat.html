@@ -15,6 +15,7 @@
           <input type="text" id="mtgt" name="mtgt" value="/tokenize" /><input type="text" id="mtype" name="mtype" value="text/plain" /><input type="text" id="status" /><input type="radio" id="mget" name="method" value="get" checked /><label for="mget">GET</label><input type="radio" id="mpost" name="method" value="post" /><label for="mpost">POST</label><button id="send">Send</button>
           <textarea id="data" style="width: 50vw; height: 20vh; box-sizing: border-box;"></textarea>
           <textarea id="result" style="width: 50vw; height: 20vh; box-sizing: border-box;"></textarea>
+          <textarea id="result2" style="width: 50vw; height: 20vh; box-sizing: border-box;"></textarea>
           <div id="json-display" style="white-space: pre; display: inline-block; width: 50vw; height: fit-content; padding: 0.5em; padding-left: 2em; box-sizing: border-box;"></div>
         </div>
         <div style="display: table-column; float: left; width: fit-content; height: fit-content; white-space: pre;">
@@ -77,8 +78,9 @@
         function reqListener() {
           var s = document.querySelector("#status");
           s.value += ' ' + this.status + " " + this.statusText;
-          //var unescaped = decodeURIComponent(JSON.parse(this.responseText).result);
+          var unescaped = decodeURIComponent(JSON.parse(this.responseText).result);
           document.querySelector("#result").value = this.responseText;
+          document.querySelector("#result2").value = unescaped;
           //console.log("this", this)
           if(this.status == 200){
             histadd();

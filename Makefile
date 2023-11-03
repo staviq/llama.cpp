@@ -567,7 +567,7 @@ libllama.so: llama.o ggml.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared -fPIC -o $@ $^ $(LDFLAGS)
 
 REST_DEPS = examples/rest/inference.hpp examples/rest/utils.hpp examples/rest/cmdlargs.hpp examples/rest/libs.hpp \
-			examples/rest/system.hpp
+			examples/rest/system.hpp examples/rest/public.hpp
 
 rest_lib_lz4.o: examples/rest/lib/lz4.c $(REST_DEPS) $(COMMON_DEPS) $(OBJS)
 	$(CC)  $(CFLAGS)   -c $< -o $@

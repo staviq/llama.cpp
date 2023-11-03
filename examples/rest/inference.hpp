@@ -51,7 +51,10 @@ class Context
         ~Context();
 
     public:
-        bool create(std::shared_ptr<Model> model, json params = json());
+        bool create(std::shared_ptr<Model> model, json params = json()) {
+            const std::lock_guard<std::mutex> lock(_busy);
+            return create_unsafe(model,params);
+        }
         bool created();
 
         const llama_context_params * const params() const {return &_ctx_params;}
@@ -66,6 +69,7 @@ class Context
             restore_unsafe();
         }
     private:
+        bool create_unsafe(std::shared_ptr<Model> model, json params = json(), bool save = true);
         void save_unsafe();
         void restore_unsafe();
 
@@ -76,10 +80,12 @@ class Context
         llama_context_params _ctx_params;
         llama_context * _ctx;
 
+        json _jparams;
         std::shared_ptr<Model> _model = nullptr;
 
         char * _state = nullptr;
-        size_t _state_size = 0;
+        size_t _state_original_size = 0;
+        size_t _state_compressed_size = 0;
 };
 
 class Inference
